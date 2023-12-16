@@ -59,7 +59,6 @@ class CanvasRenderer {
 
         // Draw the symbol (curves) here
         // This code will vary depending on the format of your symbol data
-        // For demonstration, let's assume you have an array of points for each curve
         annotation.symbols.curves.forEach(curve => {
             // Check if curve is a set of points
             if (curve.type === 'points') {
@@ -275,7 +274,7 @@ class InteractiveCanvas {
                 this.rotationIcon.style.display = 'none'; // Hide the rotation icon
             }
         }
-        this.renderer.drawSymbol(this.annotation); // Assume this method exists and redraws the symbol and annotations
+        this.renderer.drawSymbol(this.annotation); // redraws the symbol and annotations
     }
 
     getMousePosition(event: MouseEvent): Point {
