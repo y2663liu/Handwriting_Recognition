@@ -30,7 +30,6 @@ var CanvasRenderer = /** @class */ (function () {
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
         // Draw the symbol (curves) here
         // This code will vary depending on the format of your symbol data
-        // For demonstration, let's assume you have an array of points for each curve
         annotation.symbols.curves.forEach(function (curve) {
             // Check if curve is a set of points
             if (curve.type === 'points') {
@@ -88,6 +87,8 @@ var InteractiveCanvas = /** @class */ (function () {
         this.threshold = 10;
         this.canvas = document.getElementById(canvasId);
         this.rotationIcon = document.getElementById('rotationIcon');
+        this.localMaxButton = document.getElementById('button1');
+        this.localMinButton = document.getElementById('button2');
         this.saveButton = document.getElementById('saveButton');
         this.context = this.canvas.getContext('2d');
         this.renderer = renderer;
@@ -98,6 +99,8 @@ var InteractiveCanvas = /** @class */ (function () {
         this.selectedSlantLine = null;
         this.dragging = false;
         this.rotationIcon.style.display = 'none'; // Hide the rotation icon
+        this.localMaxButton.style.display = 'none';
+        this.localMinButton.style.display = 'none';
         this.canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
         this.canvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
         this.canvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
@@ -106,6 +109,7 @@ var InteractiveCanvas = /** @class */ (function () {
         this.createCheckboxesForNormalMetricLines(3);
         this.createCheckboxesForSlantMetricLines();
         this.setupRotationEventListeners();
+        this.setupLocalMaxMinEventListeners();
         this.setupSaveButtonEventListeners();
     }
     InteractiveCanvas.prototype.createCheckboxesForSlantMetricLines = function () {
@@ -148,7 +152,7 @@ var InteractiveCanvas = /** @class */ (function () {
         var container = document.getElementById('checkboxes-container-' + checkboxID);
         if (container) {
             var metricLinesInfo = [
-                { id: 'ASCENDER_LINE_' + checkboxID, label: 'Ascender Line ' + checkboxID },
+                { id: 'BASE_LINE_' + checkboxID, label: 'Base Line ' + checkboxID },
                 { id: 'X_LINE_' + checkboxID, label: 'X Line ' + checkboxID },
                 { id: 'ASCENDER_LINE_' + checkboxID, label: 'Ascender Line ' + checkboxID },
                 { id: 'CAP_LINE_' + checkboxID, label: 'Cap Line ' + checkboxID },
@@ -204,6 +208,9 @@ var InteractiveCanvas = /** @class */ (function () {
                 this.selectedSlantLine = newMetricLine;
                 this.displayRotationIcon(this.currentX, this.currentY);
             }
+            else {
+                this.displayMaxMinButton(this.currentX, this.currentY);
+            }
         }
         else {
             this.annotation.removeMetricLine(metricLineId);
@@ -211,8 +218,12 @@ var InteractiveCanvas = /** @class */ (function () {
                 this.selectedSlantLine = null;
                 this.rotationIcon.style.display = 'none'; // Hide the rotation icon
             }
+            else {
+                this.localMaxButton.style.display = 'none';
+                this.localMinButton.style.display = 'none';
+            }
         }
-        this.renderer.drawSymbol(this.annotation); // Assume this method exists and redraws the symbol and annotations
+        this.renderer.drawSymbol(this.annotation); // redraws the symbol and annotations
     };
     InteractiveCanvas.prototype.getMousePosition = function (event) {
         var canvasRect = this.canvas.getBoundingClientRect();
@@ -226,6 +237,17 @@ var InteractiveCanvas = /** @class */ (function () {
         this.rotationIcon.style.left = "".concat(x, "px"); // X coordinate for positioning the icon
         this.rotationIcon.style.top = "".concat(y, "px"); // Y coordinate for positioning the icon
         this.rotationIcon.style.display = 'block'; // Make the rotation icon visible
+    };
+    InteractiveCanvas.prototype.displayMaxMinButton = function (x, y) {
+        this.localMaxButton.style.position = 'absolute';
+        this.localMaxButton.style.left = x + 'px';
+        this.localMaxButton.style.top = (y - this.threshold) + 'px';
+        this.localMaxButton.style.display = 'block'; // Show the button
+        // Position the min button, slightly to the right of the max button
+        this.localMinButton.style.position = 'absolute';
+        this.localMinButton.style.left = (x + this.localMaxButton.offsetWidth + 10) + 'px';
+        this.localMinButton.style.top = (y - this.threshold) + 'px';
+        this.localMinButton.style.display = 'block'; // Show the button
     };
     InteractiveCanvas.prototype.handleMouseDown = function (event) {
         var mousePos = this.getMousePosition(event);
@@ -260,6 +282,9 @@ var InteractiveCanvas = /** @class */ (function () {
                 if (this.isSlant(line.id)) {
                     this.selectedSlantLine = line;
                     this.displayRotationIcon(mousePos.x, mousePos.y);
+                }
+                else {
+                    this.displayMaxMinButton(mousePos.x, mousePos.y);
                 }
                 this.dragging = true;
                 this.canvas.style.cursor = 'move';
@@ -388,6 +413,9 @@ var InteractiveCanvas = /** @class */ (function () {
                 // Position the rotation icon near the selected slant line
                 this.displayRotationIcon(mousePos.x, mousePos.y);
             }
+            else {
+                this.displayMaxMinButton(mousePos.x, mousePos.y);
+            }
         }
     };
     InteractiveCanvas.prototype.findLineAtPosition = function (mouseX, mouseY) {
@@ -489,6 +517,68 @@ var InteractiveCanvas = /** @class */ (function () {
             document.body.style.userSelect = '';
             document.body.style.cursor = 'default'; // Revert the cursor
         });
+    };
+    InteractiveCanvas.prototype.setupLocalMaxMinEventListeners = function () {
+        var _this = this;
+        if (!this.localMaxButton || !this.localMinButton) {
+            return;
+        }
+        this.localMaxButton.addEventListener('click', function (event) {
+            var selectedLine = _this.findSelectedLine();
+            if (selectedLine && selectedLine.intersectedCurve) {
+                _this.moveToLocalExtremum(selectedLine, 'max');
+            }
+        });
+        this.localMinButton.addEventListener('click', function (event) {
+            var selectedLine = _this.findSelectedLine();
+            if (selectedLine && selectedLine.intersectedCurve) {
+                _this.moveToLocalExtremum(selectedLine, 'min');
+            }
+        });
+    };
+    InteractiveCanvas.prototype.findSelectedLine = function () {
+        for (var i = 0; i < this.annotation.metricLines.length; i++) {
+            var line = this.annotation.metricLines[i];
+            if (line.isSelected) {
+                return line;
+            }
+        }
+        return null; // Return null if no line is selected
+    };
+    InteractiveCanvas.prototype.moveToLocalExtremum = function (line, type) {
+        var curve = line.intersectedCurve;
+        if (!curve || !Array.isArray(curve.data)) {
+            return; // Exit if the curve is not defined or curve.data is not an array
+        }
+        var closestExtremumPoint = null;
+        var minDistance = Infinity;
+        for (var i = 0; i < curve.data.length; i++) {
+            var isExtremum = false;
+            if (i === 0) {
+                isExtremum = (type === 'max') ? curve.data[i].y < curve.data[i + 1].y : curve.data[i].y > curve.data[i + 1].y;
+            }
+            else if (i === curve.data.length - 1) {
+                isExtremum = (type === 'max') ? curve.data[i].y < curve.data[i - 1].y : curve.data[i].y > curve.data[i - 1].y;
+            }
+            else {
+                isExtremum = (type === 'max') ?
+                    curve.data[i].y < curve.data[i - 1].y && curve.data[i].y < curve.data[i + 1].y :
+                    curve.data[i].y > curve.data[i - 1].y && curve.data[i].y > curve.data[i + 1].y;
+            }
+            if (isExtremum) {
+                var distance = this.calculateDistance(line.dot, curve.data[i]);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestExtremumPoint = curve.data[i];
+                }
+            }
+        }
+        if (closestExtremumPoint) {
+            line.y = closestExtremumPoint.y;
+            line.dot = closestExtremumPoint;
+            // Redraw the canvas
+            this.renderer.drawSymbol(this.annotation);
+        }
     };
     InteractiveCanvas.prototype.setupSaveButtonEventListeners = function () {
         var _this = this;
