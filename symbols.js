@@ -525,6 +525,10 @@ var InteractiveCanvas = /** @class */ (function () {
             document.body.style.userSelect = '';
             document.body.style.cursor = 'default'; // Revert the cursor
         });
+        window.addEventListener('resize', function () {
+            // Don't update the canvas width here
+            // this.canvas.width = window.innerWidth; // Remove or comment out this line
+        });
     };
     InteractiveCanvas.prototype.setupLocalMaxMinEventListeners = function () {
         var _this = this;
