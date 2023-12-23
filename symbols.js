@@ -89,6 +89,7 @@ var InteractiveCanvas = /** @class */ (function () {
         this.rotationIcon = document.getElementById('rotationIcon');
         this.localMaxButton = document.getElementById('button1');
         this.localMinButton = document.getElementById('button2');
+        this.fileInputButton = document.getElementById('fileInput');
         this.saveButton = document.getElementById('saveButton');
         this.context = this.canvas.getContext('2d');
         this.renderer = renderer;
@@ -110,6 +111,7 @@ var InteractiveCanvas = /** @class */ (function () {
         this.createCheckboxesForSlantMetricLines();
         this.setupRotationEventListeners();
         this.setupLocalMaxMinEventListeners();
+        this.setupfileInputButtonEventListeners();
         this.setupSaveButtonEventListeners();
     }
     InteractiveCanvas.prototype.createCheckboxesForSlantMetricLines = function () {
@@ -117,8 +119,8 @@ var InteractiveCanvas = /** @class */ (function () {
         var container = document.getElementById('slant-checkboxes-container');
         if (container) {
             var metricLinesInfo = [
-                { id: 'SLANT_1', label: 'Slant 1' },
-                { id: 'SLANT_2', label: 'Slant 2' },
+                { id: 'SLANT_1', label: 'Slant 1', defaultX: this.renderer.canvas.width * 0.5, defaultY: this.renderer.canvas.height * 0.5 },
+                { id: 'SLANT_2', label: 'Slant 2', defaultX: this.renderer.canvas.width * 0.5, defaultY: this.renderer.canvas.height * 0.5 },
             ];
             container.innerHTML = ''; // Clear existing checkboxes
             metricLinesInfo.forEach(function (lineInfo) {
@@ -139,7 +141,7 @@ var InteractiveCanvas = /** @class */ (function () {
                 checkboxContainer.appendChild(checkbox); // Add the checkbox to the container
                 checkboxContainer.appendChild(label); // Add the label to the container
                 container.appendChild(checkboxContainer); // Add the container to the main container
-                checkbox.addEventListener('change', _this.handleCheckboxChange.bind(_this, lineInfo.id));
+                checkbox.addEventListener('change', _this.handleCheckboxChange.bind(_this, lineInfo.id, lineInfo.defaultX, lineInfo.defaultY));
             });
         }
         else {
@@ -152,12 +154,12 @@ var InteractiveCanvas = /** @class */ (function () {
         var container = document.getElementById('checkboxes-container-' + checkboxID);
         if (container) {
             var metricLinesInfo = [
-                { id: 'BASE_LINE_' + checkboxID, label: 'Base Line ' + checkboxID },
-                { id: 'X_LINE_' + checkboxID, label: 'X Line ' + checkboxID },
-                { id: 'ASCENDER_LINE_' + checkboxID, label: 'Ascender Line ' + checkboxID },
-                { id: 'CAP_LINE_' + checkboxID, label: 'Cap Line ' + checkboxID },
-                { id: 'DESCENDER_LINE_' + checkboxID, label: 'Descender Line ' + checkboxID },
-                { id: 'CENTER_LINE_' + checkboxID, label: 'Center Line ' + checkboxID },
+                { id: 'ASCENDER_LINE_' + checkboxID, label: 'Ascender Line ' + checkboxID, defaultX: 0, defaultY: this.renderer.canvas.height * 0.15 },
+                { id: 'CAP_LINE_' + checkboxID, label: 'Cap Line ' + checkboxID, defaultX: 0, defaultY: this.renderer.canvas.height * 0.25 },
+                { id: 'X_LINE_' + checkboxID, label: 'X Line ' + checkboxID, defaultX: 0, defaultY: this.renderer.canvas.height * 0.4 },
+                { id: 'CENTER_LINE_' + checkboxID, label: 'Center Line ' + checkboxID, defaultX: 0, defaultY: this.renderer.canvas.height * 0.6 },
+                { id: 'BASE_LINE_' + checkboxID, label: 'Base Line ' + checkboxID, defaultX: 0, defaultY: this.renderer.canvas.height * 0.8 },
+                { id: 'DESCENDER_LINE_' + checkboxID, label: 'Descender Line ' + checkboxID, defaultX: 0, defaultY: this.renderer.canvas.height * 0.90 },
             ];
             container.innerHTML = ''; // Clear existing checkboxes
             metricLinesInfo.forEach(function (lineInfo) {
@@ -178,7 +180,7 @@ var InteractiveCanvas = /** @class */ (function () {
                 checkboxContainer.appendChild(checkbox); // Add the checkbox to the container
                 checkboxContainer.appendChild(label); // Add the label to the container
                 container.appendChild(checkboxContainer); // Add the container to the main container
-                checkbox.addEventListener('change', _this.handleCheckboxChange.bind(_this, lineInfo.id));
+                checkbox.addEventListener('change', _this.handleCheckboxChange.bind(_this, lineInfo.id, lineInfo.defaultX, lineInfo.defaultY));
             });
         }
         else {
@@ -189,14 +191,20 @@ var InteractiveCanvas = /** @class */ (function () {
     InteractiveCanvas.prototype.isSlant = function (metricLineId) {
         return metricLineId.lastIndexOf('SLANT') === 0;
     };
-    InteractiveCanvas.prototype.handleCheckboxChange = function (metricLineId, event) {
+    InteractiveCanvas.prototype.handleCheckboxChange = function (metricLineId, defaultX, defaultY, event) {
         var checkbox = event.target;
-        if (checkbox.checked && this.currentX !== null && this.currentY !== null) {
+        var xCord = defaultX;
+        var yCord = defaultY;
+        if (this.currentX !== null && this.currentY !== null) { // delete this if we only need the default one
+            xCord = this.currentX;
+            yCord = this.currentY;
+        }
+        if (checkbox.checked) {
             var defaultAngle = (this.isSlant(metricLineId) ? -60 : 0);
             var newMetricLine = {
                 id: metricLineId,
-                x: this.currentX,
-                y: this.currentY,
+                x: xCord,
+                y: yCord,
                 label: metricLineId.replace('_', ' ').replace('_', ' ').toLowerCase(),
                 angle: defaultAngle,
                 isSelected: false,
@@ -206,10 +214,10 @@ var InteractiveCanvas = /** @class */ (function () {
             this.annotation.addMetricLine(newMetricLine);
             if (this.isSlant(metricLineId)) {
                 this.selectedSlantLine = newMetricLine;
-                this.displayRotationIcon(this.currentX, this.currentY);
+                this.displayRotationIcon(xCord, yCord);
             }
             else {
-                this.displayMaxMinButton(this.currentX, this.currentY);
+                this.displayMaxMinButton(xCord, yCord);
             }
         }
         else {
@@ -580,6 +588,62 @@ var InteractiveCanvas = /** @class */ (function () {
             this.renderer.drawSymbol(this.annotation);
         }
     };
+    InteractiveCanvas.prototype.setupfileInputButtonEventListeners = function () {
+        if (!this.fileInputButton) {
+            return;
+        }
+        var interactiveCanvas = this; // Reference to the InteractiveCanvas instance
+        this.fileInputButton.addEventListener('change', function (event) {
+            var fileInput = event.target; // Cast event.target to HTMLInputElement
+            if (fileInput && fileInput.files) {
+                var file = fileInput.files[0];
+                if (file) {
+                    var reader = new FileReader();
+                    reader.onload = function (e) {
+                        var fileReader = e.target;
+                        if (fileReader && typeof fileReader.result === 'string') {
+                            var content = fileReader.result;
+                            var parser = new InkMLParser();
+                            var symbol = parser.parseInkML(content);
+                            // reset everything
+                            interactiveCanvas.deselectAllCheckboxes(3);
+                            interactiveCanvas.currentX = null;
+                            interactiveCanvas.currentY = null;
+                            interactiveCanvas.selectedLine = null;
+                            interactiveCanvas.selectedSlantLine = null;
+                            interactiveCanvas.rotationIcon.style.display = 'none';
+                            interactiveCanvas.localMaxButton.style.display = 'none';
+                            interactiveCanvas.localMinButton.style.display = 'none';
+                            // update symbol
+                            interactiveCanvas.annotation = new Annotation(symbol);
+                            interactiveCanvas.renderer.drawSymbol(interactiveCanvas.annotation);
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            }
+        });
+    };
+    InteractiveCanvas.prototype.deselectAllCheckboxes = function (checkboxNum) {
+        for (var checkboxID = 1; checkboxID <= checkboxNum; checkboxID++) { // Assuming 3 checkbox containers
+            var container = document.getElementById('checkboxes-container-' + checkboxID);
+            if (container) {
+                var checkboxes = container.querySelectorAll('input[type="checkbox"]');
+                checkboxes.forEach(function (checkboxElement) {
+                    var checkbox = checkboxElement; // Type assertion
+                    checkbox.checked = false;
+                });
+            }
+        }
+        var slantContainer = document.getElementById('slant-checkboxes-container');
+        if (slantContainer) {
+            var slantCheckboxes = slantContainer.querySelectorAll('input[type="checkbox"]');
+            slantCheckboxes.forEach(function (checkboxElement) {
+                var checkbox = checkboxElement;
+                checkbox.checked = false;
+            });
+        }
+    };
     InteractiveCanvas.prototype.setupSaveButtonEventListeners = function () {
         var _this = this;
         if (!this.saveButton) {
@@ -680,13 +744,37 @@ var InkMLParser = /** @class */ (function () {
     };
     return InkMLParser;
 }());
-// Parsing the InkML content to create a symbol
-var inkMLContent = "<ink xmlns=\"http://www.w3.org/2003/InkML\">\n<trace>\n   10 0, 9 14, 8 28, 7 42, 6 56, 6 70, 8 84, 8 98, 8 112, 9 126, 10 140,\n   13 154, 14 168, 17 182, 18 188, 23 174, 30 160, 38 147, 49 135,\n   58 124, 72 121, 77 135, 80 149, 82 163, 84 177, 87 191, 93 205\n</trace>\n<trace>\n   130 155, 144 159, 158 160, 170 154, 179 143, 179 129, 166 125,\n   152 128, 140 136, 131 149, 126 163, 124 177, 128 190, 137 200,\n   150 208, 163 210, 178 208, 192 201, 205 192, 214 180\n</trace>\n<trace>\n   227 50, 226 64, 225 78, 227 92, 228 106, 228 120, 229 134,\n   230 148, 234 162, 235 176, 238 190, 241 204\n</trace>\n<trace>\n   282 45, 281 59, 284 73, 285 87, 287 101, 288 115, 290 129,\n   291 143, 294 157, 294 171, 294 185, 296 199, 300 213\n</trace>\n<trace>\n   366 130, 359 143, 354 157, 349 171, 352 185, 359 197,\n   371 204, 385 205, 398 202, 408 191, 413 177, 413 163,\n   405 150, 392 143, 378 141, 365 150\n</trace>\n</ink>"; // Your InkML content
-var parser = new InkMLParser();
-var symbol = parser.parseInkML(inkMLContent);
+// // Parsing the InkML content to create a symbol
+// const inkMLContent = `<ink xmlns="http://www.w3.org/2003/InkML">
+// <trace>
+//    10 0, 9 14, 8 28, 7 42, 6 56, 6 70, 8 84, 8 98, 8 112, 9 126, 10 140,
+//    13 154, 14 168, 17 182, 18 188, 23 174, 30 160, 38 147, 49 135,
+//    58 124, 72 121, 77 135, 80 149, 82 163, 84 177, 87 191, 93 205
+// </trace>
+// <trace>
+//    130 155, 144 159, 158 160, 170 154, 179 143, 179 129, 166 125,
+//    152 128, 140 136, 131 149, 126 163, 124 177, 128 190, 137 200,
+//    150 208, 163 210, 178 208, 192 201, 205 192, 214 180
+// </trace>
+// <trace>
+//    227 50, 226 64, 225 78, 227 92, 228 106, 228 120, 229 134,
+//    230 148, 234 162, 235 176, 238 190, 241 204
+// </trace>
+// <trace>
+//    282 45, 281 59, 284 73, 285 87, 287 101, 288 115, 290 129,
+//    291 143, 294 157, 294 171, 294 185, 296 199, 300 213
+// </trace>
+// <trace>
+//    366 130, 359 143, 354 157, 349 171, 352 185, 359 197,
+//    371 204, 385 205, 398 202, 408 191, 413 177, 413 163,
+//    405 150, 392 143, 378 141, 365 150
+// </trace>
+// </ink>`; // Your InkML content
+// const parser = new InkMLParser();
+// const symbol = parser.parseInkML(inkMLContent);
 // Instantiate the renderer and annotation objects with the created symbol
 var canvasRenderer = new CanvasRenderer('canvasId');
-var annotation = new Annotation(symbol);
+var annotation = new Annotation(new Symbols([]));
 // Instantiate the interactive canvas
 var interactiveCanvas = new InteractiveCanvas('canvasId', canvasRenderer, annotation);
 // Draw the symbol on the canvas

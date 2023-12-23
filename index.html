@@ -46,6 +46,11 @@
             width: 100%; /* Makes the canvas width fit the screen */
             height: 300px;
         }
+        #fileInput {
+            font-size: 20px; /* Larger font size */
+            padding: 10px 20px; /* Padding around the text */
+            cursor: pointer; /* Cursor changes to pointer when hovering over the button */
+        }
         #saveButton {
             font-size: 20px; /* Larger font size */
             padding: 10px 20px; /* Padding around the text */
@@ -65,6 +70,7 @@
             <div class="checkboxes-container" id="slant-checkboxes-container"></div>
         </div>
         <div id="rotationIcon">🔄</div> <!-- Rotation icon -->
+        <input type="file" id="fileInput">
         <button id="saveButton">Save</button>
         <button id="button1" class="icon-button">
             <i class="fa fa-arrow-up"></i> <!-- This is for the 'local maximum' icon -->
