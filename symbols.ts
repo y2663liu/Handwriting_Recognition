@@ -262,10 +262,10 @@ class InteractiveCanvas {
         const checkbox = event.target as HTMLInputElement;
         let xCord = defaultX;
         let yCord = defaultY;
-        if (this.currentX !== null && this.currentY !== null){ // delete this if we only need the default one
-            xCord = this.currentX;
-            yCord = this.currentY;
-        }
+        // if (this.currentX !== null && this.currentY !== null){ // delete this if we only need the default one
+        //     xCord = this.currentX;
+        //     yCord = this.currentY;
+        // }
         if (checkbox.checked) {
             const defaultAngle = (this.isSlant(metricLineId) ? -60 : 0);
             const newMetricLine: MetricLine = {
@@ -351,10 +351,6 @@ class InteractiveCanvas {
                 if (intersectionResult.point) {
                     line.dot = intersectionResult.point;
                     line.intersectedCurve = intersectionResult.curve;
-                } else {
-                    const lineSlope = Math.tan(line.angle * Math.PI / 180);
-                    const yOnLine = line.y + lineSlope * (mousePos.x - line.x);
-                    line.dot = { x: mousePos.x, y: yOnLine };
                 }
 
                 if (this.isSlant(line.id)) {

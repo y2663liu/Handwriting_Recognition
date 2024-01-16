@@ -195,10 +195,10 @@ var InteractiveCanvas = /** @class */ (function () {
         var checkbox = event.target;
         var xCord = defaultX;
         var yCord = defaultY;
-        if (this.currentX !== null && this.currentY !== null) { // delete this if we only need the default one
-            xCord = this.currentX;
-            yCord = this.currentY;
-        }
+        // if (this.currentX !== null && this.currentY !== null){ // delete this if we only need the default one
+        //     xCord = this.currentX;
+        //     yCord = this.currentY;
+        // }
         if (checkbox.checked) {
             var defaultAngle = (this.isSlant(metricLineId) ? -60 : 0);
             var newMetricLine = {
@@ -283,9 +283,9 @@ var InteractiveCanvas = /** @class */ (function () {
                     line.intersectedCurve = intersectionResult.curve;
                 }
                 else {
-                    var lineSlope = Math.tan(line.angle * Math.PI / 180);
-                    var yOnLine = line.y + lineSlope * (mousePos.x - line.x);
-                    line.dot = { x: mousePos.x, y: yOnLine };
+                    // const lineSlope = Math.tan(line.angle * Math.PI / 180);
+                    // const yOnLine = line.y + lineSlope * (mousePos.x - line.x);
+                    // line.dot = { x: mousePos.x, y: yOnLine };
                 }
                 if (this.isSlant(line.id)) {
                     this.selectedSlantLine = line;
@@ -524,10 +524,6 @@ var InteractiveCanvas = /** @class */ (function () {
             isRotating = false;
             document.body.style.userSelect = '';
             document.body.style.cursor = 'default'; // Revert the cursor
-        });
-        window.addEventListener('resize', function () {
-            // Don't update the canvas width here
-            // this.canvas.width = window.innerWidth; // Remove or comment out this line
         });
     };
     InteractiveCanvas.prototype.setupLocalMaxMinEventListeners = function () {
